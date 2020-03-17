@@ -40,7 +40,8 @@ When refering to XBlocks, we use the entry-point name. For example,
 # pylint: disable=unused-import
 
 from __future__ import absolute_import
-
+import sys
+sys.path.insert(0,'/edx/app/edxapp/navoica-platform/navoica_override/')
 import imp
 import os
 import sys
@@ -160,8 +161,7 @@ from machina import MACHINA_MAIN_TEMPLATE_DIR
 ############################ FEATURE CONFIGURATION #############################
 
 EDX_ROOT = path(__file__).abspath().dirname().dirname().dirname().dirname()  # /edx-platform/
-PLATFORM_VERSION = subprocess.check_output(["git -C %s describe --tags" % EDX_ROOT],shell=True)
-
+PLATFORM_VERSION = subprocess.check_output(["git -C %s/edx_platform/ describe --tags" % EDX_ROOT],shell=True)
 # Dummy secret key for dev/test
 SECRET_KEY = 'dev key'
 
@@ -325,21 +325,36 @@ SOCIAL_SHARING_SETTINGS = {
 }
 
 ############################# SET PATH INFORMATION #############################
-PROJECT_ROOT = path(__file__).abspath().dirname().dirname().dirname().dirname()  # /edx-platform/cms
-PROJECT_ROOT = PROJECT_ROOT + '/cms'
-REPO_ROOT = PROJECT_ROOT.dirname()
-COMMON_ROOT = REPO_ROOT / "common"
-OPENEDX_ROOT = REPO_ROOT / "openedx"
-CMS_ROOT = REPO_ROOT / "cms"
-LMS_ROOT = REPO_ROOT / "lms"
+PROJECT_ROOT = path(__file__).abspath().dirname().dirname()  # /navoica-platform/navoica_override/cms
+REPO_ROOT_OVERRIDE = PROJECT_ROOT.dirname() #/navoica-platform/navoica_override
+REPO_ROOT_EDX = REPO_ROOT_OVERRIDE.dirname() / 'edx_platform' #/navoica-platform/edx_platform
+REPO_ROOT = REPO_ROOT_EDX
+
+REPO_ROOT_OVERRIDE_CMS = REPO_ROOT_OVERRIDE / "cms"
+REPO_ROOT_OVERRIDE_DJANGOAPPS = REPO_ROOT_OVERRIDE_CMS / "djangoapps"
+
+COMMON_ROOT_EDX = REPO_ROOT_EDX / "common"
+COMMON_ROOT = COMMON_ROOT_EDX
+OPENEDX_ROOT_EDX = REPO_ROOT_EDX / "openedx"
+OPENEDX_ROOT = OPENEDX_ROOT_EDX
+CMS_ROOT_EDX = REPO_ROOT_EDX / "cms"
+CMS_ROOT = CMS_ROOT_EDX
+LMS_ROOT_EDX = REPO_ROOT_EDX / "lms"
+CMS_ROOT_EDX_DJANGOAPPS = CMS_ROOT_EDX / "djangoapps"
+
 ENV_ROOT = REPO_ROOT.dirname()  # virtualenv dir /edx-platform is in
 
 GITHUB_REPO_ROOT = ENV_ROOT / "data"
 
-sys.path.append(REPO_ROOT)
-sys.path.append(REPO_ROOT / 'navoica_override/cms/djangoapps')
-sys.path.append(PROJECT_ROOT / 'djangoapps')
-sys.path.append(COMMON_ROOT / 'djangoapps')
+sys.path.insert(0,REPO_ROOT_OVERRIDE)                #/navoica-platform/navoica_override
+sys.path.append(REPO_ROOT_EDX)                #/navoica-platform/navoica_override
+sys.path.append(REPO_ROOT_OVERRIDE_CMS)
+sys.path.append(CMS_ROOT_EDX)
+sys.path.append(REPO_ROOT_OVERRIDE_DJANGOAPPS)
+sys.path.append(CMS_ROOT_EDX_DJANGOAPPS)
+
+sys.path.append(COMMON_ROOT_EDX / 'djangoapps')         # /navoica-platform/common/djangoapps/
+
 
 # For geolocation ip database
 GEOIP_PATH = REPO_ROOT / "common/static/data/geoip/GeoIP.dat"
