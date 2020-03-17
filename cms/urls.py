@@ -20,6 +20,6 @@ favicon_path = configuration_helpers.get_value('favicon_path', settings.FAVICON_
 urlpatterns += [
     url(r'^favicon\.ico$', RedirectView.as_view(url=settings.STATIC_URL + favicon_path, permanent=True)),
 ]
-print('!!!!!!!!!!!!!!!!!!!!!!!!!')
-print(len(urlpatterns))
-print('!!!!!!!!!!!!!!!!!!!!!!!!!')
+import sys
+print('||||||||||||||||||||||||||')
+print(sys.path)

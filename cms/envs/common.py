@@ -42,6 +42,7 @@ When refering to XBlocks, we use the entry-point name. For example,
 from __future__ import absolute_import
 import sys
 sys.path.insert(0,'/edx/app/edxapp/navoica-platform/navoica_override/')
+sys.path.insert(0,'/edx/app/edxapp/navoica-platform/navoica_override/common/lib/xmodule')
 import imp
 import os
 import sys
@@ -334,6 +335,7 @@ REPO_ROOT_OVERRIDE_CMS = REPO_ROOT_OVERRIDE / "cms"
 REPO_ROOT_OVERRIDE_DJANGOAPPS = REPO_ROOT_OVERRIDE_CMS / "djangoapps"
 
 COMMON_ROOT_EDX = REPO_ROOT_EDX / "common"
+COMMON_ROOT_OVERRIDE = REPO_ROOT_OVERRIDE / "common"
 COMMON_ROOT = COMMON_ROOT_EDX
 OPENEDX_ROOT_EDX = REPO_ROOT_EDX / "openedx"
 OPENEDX_ROOT = OPENEDX_ROOT_EDX
@@ -352,7 +354,7 @@ sys.path.append(REPO_ROOT_OVERRIDE_CMS)
 sys.path.append(CMS_ROOT_EDX)
 sys.path.append(REPO_ROOT_OVERRIDE_DJANGOAPPS)
 sys.path.append(CMS_ROOT_EDX_DJANGOAPPS)
-
+sys.path.append(COMMON_ROOT_OVERRIDE / 'djangoapps')
 sys.path.append(COMMON_ROOT_EDX / 'djangoapps')         # /navoica-platform/common/djangoapps/
 
 
