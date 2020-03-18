@@ -464,7 +464,7 @@ LMS_ROOT_EDX_DJANGOAPPS = LMS_ROOT_EDX / "djangoapps"
 ENV_ROOT = REPO_ROOT.dirname().dirname()  # virtualenv dir /edx-platform is in
 COURSES_ROOT = ENV_ROOT / "data"
 NODE_MODULES_ROOT = REPO_ROOT / "node_modules"
-
+PROJECT_ROOT = LMS_ROOT_EDX
 DATA_DIR = COURSES_ROOT
 # TODO: Remove the rest of the sys.path modification here and in cms/envs/common.py
 # sys.path.insert(0,REPO_ROOT_OVERRIDE)                #/navoica-platform/navoica_override
@@ -473,7 +473,7 @@ sys.path.append(LMS_ROOT_OVERRIDE)       #/navoica-platform/lms
 sys.path.append(LMS_ROOT_EDX)
 sys.path.append(LMS_ROOT_OVERRIDE_DJANGOAPPS)
 sys.path.append(LMS_ROOT_EDX_DJANGOAPPS)
-
+sys.path.append(COMMON_ROOT / "djangoapps")
 # For Node.js
 
 system_node_path = os.environ.get("NODE_PATH", NODE_MODULES_ROOT)

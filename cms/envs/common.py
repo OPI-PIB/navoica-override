@@ -42,7 +42,7 @@ When refering to XBlocks, we use the entry-point name. For example,
 from __future__ import absolute_import
 import sys
 sys.path.insert(0,'/edx/app/edxapp/navoica-platform/navoica_override/')
-sys.path.insert(0,'/edx/app/edxapp/navoica-platform/navoica_override/common/lib/xmodule')
+# sys.path.insert(0,'/edx/app/edxapp/navoica-platform/navoica_override/common/lib/xmodule')
 import imp
 import os
 import sys
@@ -345,7 +345,7 @@ LMS_ROOT_EDX = REPO_ROOT_EDX / "lms"
 CMS_ROOT_EDX_DJANGOAPPS = CMS_ROOT_EDX / "djangoapps"
 
 ENV_ROOT = REPO_ROOT.dirname()  # virtualenv dir /edx-platform is in
-
+PROJECT_ROOT = CMS_ROOT_EDX
 GITHUB_REPO_ROOT = ENV_ROOT / "data"
 
 sys.path.insert(0,REPO_ROOT_OVERRIDE)                #/navoica-platform/navoica_override
