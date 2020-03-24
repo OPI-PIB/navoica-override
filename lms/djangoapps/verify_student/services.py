@@ -229,4 +229,3 @@ class IDVerificationService(object):
             return 'Not ID Verified'
         else:
             return 'ID Verified'
-s
