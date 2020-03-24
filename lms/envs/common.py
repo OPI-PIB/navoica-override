@@ -30,7 +30,6 @@ Longer TODO:
 # and throws spurious errors. Therefore, we disable invalid-name checking.
 # pylint: disable=invalid-name
 import sys
-sys.path.insert(0,'/edx/app/edxapp/navoica-platform/navoica_override/')
 import imp
 import os
 import subprocess
@@ -55,7 +54,6 @@ reload(sys)  # Reload does the trick!
 sys.setdefaultencoding('UTF8')
 
 EDX_ROOT = path(__file__).abspath().dirname().dirname().dirname().dirname()  # /edx-platform/
-
 ################################### FEATURES ###################################
 # The display name of the platform to be used in templates/emails/etc.
 PLATFORM_NAME = "Navoica.pl"
@@ -80,7 +78,6 @@ LMS_ENROLLMENT_API_PATH = "/api/enrollment/v1/"
 # Default choices for role dropdown in the membership tab of the instructor dashboard
 # This setting is used when a site does not define its own choices via site configuration
 MANUAL_ENROLLMENT_ROLE_CHOICES = ['Learner', 'Support', 'Partner']
-
 # Features
 FEATURES = {
 	'BYPASS_ACTIVATION_EMAIL': False,
@@ -825,10 +822,11 @@ TRACKING_SEGMENTIO_SOURCE_MAP = {
     'analytics-ios': 'mobile',
 }
 
+
 ######################## GOOGLE ANALYTICS ###########################
 GOOGLE_ANALYTICS_ACCOUNT = None
+GOOGLE_SITE_VERIFICATION_ID = None
 GOOGLE_ANALYTICS_LINKEDIN = 'GOOGLE_ANALYTICS_LINKEDIN_DUMMY'
-
 ######################## BRANCH.IO ###########################
 BRANCH_IO_KEY = None
 
@@ -2211,7 +2209,7 @@ INSTALLED_APPS = [
     'sorl.thumbnail',
 
     # Credentials support
-    'openedx.core.djangoapps.credentials',
+    # 'openedx.core.djangoapps.credentials',
 
     # edx-milestones service
     'milestones',
@@ -2582,6 +2580,10 @@ FINANCIAL_REPORTS = {
     'CUSTOM_DOMAIN': 'edx-financial-reports.s3.amazonaws.com',
     'ROOT_PATH': '/tmp/edx-s3/financial_reports',
 }
+
+#### Grading policy change-related settings #####
+# Rate limit for regrading tasks that a grading policy change can kick off
+POLICY_CHANGE_TASK_RATE_LIMIT = '300/h'
 
 #### PASSWORD POLICY SETTINGS #####
 PASSWORD_MIN_LENGTH = 8
