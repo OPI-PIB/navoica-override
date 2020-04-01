@@ -11,6 +11,7 @@ __path__.append(join(settings.CMS_ROOT, "djangoapps/contentstore/views"))
 from edx_platform.cms.djangoapps.contentstore.views.assets import *
 from .component import *
 from .course import *
+from edx_platform.cms.djangoapps.contentstore.views.checklists import *
 from edx_platform.cms.djangoapps.contentstore.views.entrance_exam import *
 from edx_platform.cms.djangoapps.contentstore.views.error import *
 from edx_platform.cms.djangoapps.contentstore.views.helpers import *

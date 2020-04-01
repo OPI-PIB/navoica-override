@@ -41,8 +41,8 @@ When refering to XBlocks, we use the entry-point name. For example,
 
 from __future__ import absolute_import
 import sys
-sys.path.insert(0,'/edx/app/edxapp/navoica-platform/navoica_override/')
-# sys.path.insert(0,'/edx/app/edxapp/navoica-platform/navoica_override/common/lib/xmodule')
+sys.path.insert(0,'/edx/app/edxapp/edx-platform/navoica_override/')
+# sys.path.insert(0,'/edx/app/edxapp/edx-platform/navoica_override/common/lib/xmodule')
 import imp
 import os
 import sys
@@ -100,6 +100,14 @@ from lms.envs.common import (
     REDIRECT_CACHE_TIMEOUT,
     REDIRECT_CACHE_KEY_PREFIX,
 
+    # This is required for the migrations in oauth_dispatch.models
+    # otherwise it fails saying this attribute is not present in Settings
+    # Although Studio does not enable OAuth2 Provider capability, the new approach
+    # to generating test databases will discover and try to create all tables
+    # and this setting needs to be present
+    OAUTH2_PROVIDER_APPLICATION_MODEL,
+    DEFAULT_JWT_ISSUER,
+    RESTRICTED_APPLICATION_JWT_ISSUER,
     JWT_AUTH,
 
     USERNAME_REGEX_PARTIAL,
@@ -138,6 +146,7 @@ from lms.envs.common import (
     RETIRED_EMAIL_FMT,
     RETIRED_USER_SALTS,
     RETIREMENT_SERVICE_WORKER_USERNAME,
+    RETIREMENT_STATES,
 
     # Methods to derive settings
     _make_mako_template_dirs,
@@ -314,7 +323,14 @@ FEATURES = {
     # shown in Studio in a separate list.
     'ENABLE_SEPARATE_ARCHIVED_COURSES': True,
 
-    'ALLOW_HIDING_DISCUSSION_TAB': True,
+    # For acceptance and load testing
+    'AUTOMATIC_AUTH_FOR_TESTING': False,
+
+    # Prevent auto auth from creating superusers or modifying existing users
+    'RESTRICT_AUTOMATIC_AUTH': True,
+
+    # Set this to true to make API docs available at /api-docs/.
+    'ENABLE_API_DOCS': False,
 }
 
 ENABLE_JASMINE = False
@@ -326,9 +342,9 @@ SOCIAL_SHARING_SETTINGS = {
 }
 
 ############################# SET PATH INFORMATION #############################
-PROJECT_ROOT = path(__file__).abspath().dirname().dirname()  # /navoica-platform/navoica_override/cms
-REPO_ROOT_OVERRIDE = PROJECT_ROOT.dirname() #/navoica-platform/navoica_override
-REPO_ROOT_EDX = REPO_ROOT_OVERRIDE.dirname() / 'edx_platform' #/navoica-platform/edx_platform
+PROJECT_ROOT = path(__file__).abspath().dirname().dirname()  # /edx-platform/navoica_override/cms
+REPO_ROOT_OVERRIDE = PROJECT_ROOT.dirname() #/edx-platform/navoica_override
+REPO_ROOT_EDX = REPO_ROOT_OVERRIDE.dirname() / 'edx_platform' #/edx-platform/edx_platform
 REPO_ROOT = REPO_ROOT_EDX
 
 REPO_ROOT_OVERRIDE_CMS = REPO_ROOT_OVERRIDE / "cms"
@@ -348,14 +364,14 @@ ENV_ROOT = REPO_ROOT.dirname()  # virtualenv dir /edx-platform is in
 PROJECT_ROOT = CMS_ROOT_EDX
 GITHUB_REPO_ROOT = ENV_ROOT / "data"
 
-sys.path.insert(0,REPO_ROOT_OVERRIDE)                #/navoica-platform/navoica_override
-sys.path.append(REPO_ROOT_EDX)                #/navoica-platform/navoica_override
+sys.path.insert(0,REPO_ROOT_OVERRIDE)                #/edx-platform/navoica_override
+sys.path.append(REPO_ROOT_EDX)                #/edx-platform/navoica_override
 sys.path.append(REPO_ROOT_OVERRIDE_CMS)
 sys.path.append(CMS_ROOT_EDX)
 sys.path.append(REPO_ROOT_OVERRIDE_DJANGOAPPS)
 sys.path.append(CMS_ROOT_EDX_DJANGOAPPS)
 sys.path.append(COMMON_ROOT_OVERRIDE / 'djangoapps')
-sys.path.append(COMMON_ROOT_EDX / 'djangoapps')         # /navoica-platform/common/djangoapps/
+sys.path.append(COMMON_ROOT_EDX / 'djangoapps')         # /edx-platform/common/djangoapps/
 
 
 # For geolocation ip database
@@ -503,7 +519,7 @@ MIDDLEWARE_CLASSES = [
     'openedx.core.djangoapps.header_control.middleware.HeaderControlMiddleware',
     'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.common.CommonMiddleware',
-    _csrf_middleware,
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.sites.middleware.CurrentSiteMiddleware',
 
     # Allows us to define redirects via Django admin
@@ -552,6 +568,8 @@ MIDDLEWARE_CLASSES = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     'waffle.middleware.WaffleMiddleware',
+
+    'edx_rest_framework_extensions.middleware.EnsureJWTAuthSettingsMiddleware',
 
     # This must be last so that it runs first in the process_response chain
     'openedx.core.djangoapps.site_configuration.middleware.SessionCookieDomainOverrideMiddleware',
@@ -802,6 +820,7 @@ PIPELINE_CSS = {
         'source_filenames': [
             'css/vendor/ova/annotator.css',
             'css/vendor/ova/edx-annotator.css',
+            'css/vendor/ova/video-js.min.css',
             'css/vendor/ova/rangeslider.css',
             'css/vendor/ova/share-annotator.css',
             'css/vendor/ova/richText-annotator.css',
@@ -917,6 +936,9 @@ WEBPACK_CONFIG_PATH = 'webpack.dev.config.js'
 
 ################################# CELERY ######################################
 
+# Auto discover tasks fails to detect contentstore tasks
+CELERY_IMPORTS = ('cms.djangoapps.contentstore.tasks')
+
 # Message configuration
 
 CELERY_TASK_SERIALIZER = 'json'
@@ -1001,6 +1023,7 @@ INSTALLED_APPS = [
     # Standard apps
     'django.contrib.auth',
     'django.contrib.contenttypes',
+    'django.contrib.humanize',
     'django.contrib.redirects',
     'django.contrib.sessions',
     'django.contrib.sites',
@@ -1014,6 +1037,9 @@ INSTALLED_APPS = [
 
     # Common views
     'openedx.core.djangoapps.common_views',
+
+    # API access administration
+    'openedx.core.djangoapps.api_admin',
 
     # History tables
     'simple_history',
@@ -1080,7 +1106,13 @@ INSTALLED_APPS = [
     # Dark-launching languages
     'openedx.core.djangoapps.dark_lang',
 
+    #
     # User preferences
+    'wiki',
+    'django_notify',
+    'course_wiki',  # Our customizations
+    'mptt',
+    'sekizai',
     'openedx.core.djangoapps.user_api',
     'django_openid_auth',
 
@@ -1091,7 +1123,7 @@ INSTALLED_APPS = [
     'course_action_state',
 
     # Additional problem types
-    'edx_jsme',  # Molecular Structure
+    'edx_jsme',    # Molecular Structure
 
     'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig',
     'openedx.core.djangoapps.content.course_structures.apps.CourseStructuresConfig',
@@ -1130,7 +1162,7 @@ INSTALLED_APPS = [
     # by installed apps.
     'oauth_provider',
     'courseware',
-    'survey',
+    'survey.apps.SurveyConfig',
     'lms.djangoapps.verify_student.apps.VerifyStudentConfig',
     'completion',
 
@@ -1177,11 +1209,14 @@ INSTALLED_APPS = [
 
     # Asset management for mako templates
     'pipeline_mako',
-    # Machina related apps:
-    'mptt',
+
+    # API Documentation
+    'rest_framework_swagger',
+    #Machina related apps:
     'haystack',
     'widget_tweaks',
-] + get_machina_apps()
+    ] + get_machina_apps()
+
 
 ################# EDX MARKETING SITE ##################################
 
@@ -1290,6 +1325,9 @@ OPTIONAL_APPS = (
     # Enterprise App (http://github.com/edx/edx-enterprise)
     ('enterprise', None),
     ('consent', None),
+    ('integrated_channels.integrated_channel', None),
+    ('integrated_channels.degreed', None),
+    ('integrated_channels.sap_success_factors', None),
 )
 
 for app_name, insert_before in OPTIONAL_APPS:
@@ -1558,3 +1596,8 @@ from openedx.core.djangoapps.plugins import plugin_apps, plugin_settings, consta
 
 INSTALLED_APPS.extend(plugin_apps.get_apps(plugin_constants.ProjectType.CMS))
 plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.CMS, plugin_constants.SettingsType.COMMON)
+
+# Course exports streamed in blocks of this size. 8192 or 8kb is the default
+# setting for the FileWrapper class used to iterate over the export file data.
+# See: https://docs.python.org/2/library/wsgiref.html#wsgiref.util.FileWrapper
+COURSE_EXPORT_DOWNLOAD_CHUNK_SIZE = 8192

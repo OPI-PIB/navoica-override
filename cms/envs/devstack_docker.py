@@ -43,3 +43,19 @@ SETTINGS_EXPORT = [
     'STUDIO_NAME',
     'FAVICON_PATH',
 ]
+
+from .common import _make_mako_template_dirs
+
+SITE_ID = 1
+# dir containing all themes
+COMPREHENSIVE_THEME_DIRS = [REPO_ROOT_OVERRIDE / "themes"]
+# Theme directory locale paths
+COMPREHENSIVE_THEME_LOCALE_PATHS = []
+# Theme to use when no site or site theme is defined,
+# set to None if you want to use openedx theme
+DEFAULT_SITE_THEME = 'navoica-theme'
+
+ENABLE_COMPREHENSIVE_THEMING = True
+
+TEMPLATES[1]["DIRS"] = _make_mako_template_dirs
+derive_settings(__name__)

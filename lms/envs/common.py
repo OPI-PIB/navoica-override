@@ -194,8 +194,11 @@ FEATURES = {
     # Toggle to enable certificates of courses on dashboard
     'ENABLE_VERIFIED_CERTIFICATES': False,
 
-    # for load testing
+    # for acceptance and load testing
     'AUTOMATIC_AUTH_FOR_TESTING': False,
+
+    # Prevent auto auth from creating superusers or modifying existing users
+    'RESTRICT_AUTOMATIC_AUTH': True,
 
     # Toggle the availability of the shopping cart page
     'ENABLE_SHOPPING_CART': False,
@@ -211,6 +214,9 @@ FEATURES = {
 
     # Automatically approve student identity verification attempts
     'AUTOMATIC_VERIFY_STUDENT_IDENTITY_FOR_TESTING': False,
+
+    # Maximum number of rows to include in the csv file for downloading problem responses.
+    'MAX_PROBLEM_RESPONSES_COUNT': 5000,
 
     # whether to use password policy enforcement or not
     'ENFORCE_PASSWORD_POLICY': True,
@@ -408,7 +414,11 @@ FEATURES = {
     # that they don't have an account associated with email addresses they believe they've registered with.
     'ENABLE_PASSWORD_RESET_FAILURE_EMAIL': False,
 
-    'UNSUPPORTED_BROWSER_ALERT_VERSIONS': "{e:0,f:-3,o:0,s:-3,c:-3,i:20}",
+    # Set this to true to make API docs available at /api-docs/.
+    'ENABLE_API_DOCS': False,
+
+    # Whether to display the account deletion section the account settings page
+    'ENABLE_ACCOUNT_DELETION': True,
 }
 
 COURSE_DISCOVERY_FILTERS = ['course_category', 'availability', 'organizer', 'difficulty']
@@ -441,9 +451,9 @@ RETRY_ACTIVATION_EMAIL_TIMEOUT = 0.5
 COURSE_MESSAGE_ALERT_DURATION_IN_DAYS = 14
 
 ############################# SET PATH INFORMATION #############################
-PROJECT_ROOT = path(__file__).abspath().dirname().dirname()  # /navoica-platform/navoica_override/lms
-REPO_ROOT_OVERRIDE = PROJECT_ROOT.dirname() #/navoica-platform/navoica_override
-REPO_ROOT_EDX = REPO_ROOT_OVERRIDE.dirname() / 'edx_platform' #/navoica-platform/edx_platform
+PROJECT_ROOT = path(__file__).abspath().dirname().dirname()  # /edx-platform/navoica_override/lms
+REPO_ROOT_OVERRIDE = PROJECT_ROOT.dirname() #/edx-platform/navoica_override
+REPO_ROOT_EDX = REPO_ROOT_OVERRIDE.dirname() / 'edx_platform' #/edx-platform/edx_platform
 REPO_ROOT = REPO_ROOT_EDX
 
 LMS_ROOT_OVERRIDE = REPO_ROOT_OVERRIDE / "lms"
@@ -464,9 +474,9 @@ NODE_MODULES_ROOT = REPO_ROOT / "node_modules"
 PROJECT_ROOT = LMS_ROOT_EDX
 DATA_DIR = COURSES_ROOT
 # TODO: Remove the rest of the sys.path modification here and in cms/envs/common.py
-# sys.path.insert(0,REPO_ROOT_OVERRIDE)                #/navoica-platform/navoica_override
-sys.path.append(REPO_ROOT_EDX)                #/navoica-platform/edx_platform
-sys.path.append(LMS_ROOT_OVERRIDE)       #/navoica-platform/lms
+# sys.path.insert(0,REPO_ROOT_OVERRIDE)                #/edx-platform/navoica_override
+sys.path.append(REPO_ROOT_EDX)                #/edx-platform/edx_platform
+sys.path.append(LMS_ROOT_OVERRIDE)       #/edx-platform/lms
 sys.path.append(LMS_ROOT_EDX)
 sys.path.append(LMS_ROOT_OVERRIDE_DJANGOAPPS)
 sys.path.append(LMS_ROOT_EDX_DJANGOAPPS)
@@ -524,18 +534,27 @@ OAUTH_EXPIRE_PUBLIC_CLIENT_DAYS = 30
 
 ################################## DJANGO OAUTH TOOLKIT #######################################
 
+# Scope description strings are presented to the user
+# on the application authorization page. See
+# lms/templates/oauth2_provider/authorize.html for details.
+OAUTH2_DEFAULT_SCOPES = {
+    'read': _('Read access'),
+    'write': _('Write access'),
+    'email': _('Know your email address'),
+    'profile': _('Know your name and username'),
+}
+
 OAUTH2_PROVIDER = {
     'OAUTH2_VALIDATOR_CLASS': 'openedx.core.djangoapps.oauth_dispatch.dot_overrides.validators.EdxOAuth2Validator',
     'REFRESH_TOKEN_EXPIRE_SECONDS': 20160,
-    'SCOPES': {
-        'read': 'Read access',
-        'write': 'Write access',
-        'email': 'Know your email address',
-        # conform profile scope message that is presented to end-user
-        # to lms/templates/provider/authorize.html. This may be revised later.
-        'profile': 'Know your name and username',
-    },
+    'SCOPES_BACKEND_CLASS': 'openedx.core.djangoapps.oauth_dispatch.scopes.ApplicationModelScopes',
+    'SCOPES': dict(OAUTH2_DEFAULT_SCOPES, **{
+        'grades:read': _('Retrieve your grades for your enrolled courses'),
+        'certificates:read': _('Retrieve your course certificates'),
+    }),
+    'DEFAULT_SCOPES': OAUTH2_DEFAULT_SCOPES,
     'REQUEST_APPROVAL_PROMPT': 'auto_even_if_expired',
+    'ERROR_RESPONSE_WITH_SCOPES': True,
 }
 # This is required for the migrations in oauth_dispatch.models
 # otherwise it fails saying this attribute is not present in Settings
@@ -1163,12 +1182,6 @@ CREDIT_NOTIFICATION_CACHE_TIMEOUT = 5 * 60 * 60
 
 ################################# Middleware ###################################
 
-# TODO: Remove Django 1.11 upgrade shim
-# SHIM: Remove birdcage references post-1.11 upgrade as it is only in place to help during that deployment
-if django.VERSION < (1, 9):
-    _csrf_middleware = 'birdcage.v1_11.csrf.CsrfViewMiddleware'
-else:
-    _csrf_middleware = 'django.middleware.csrf.CsrfViewMiddleware'
 
 MIDDLEWARE_CLASSES = [
     'crum.CurrentRequestUserMiddleware',
@@ -1191,7 +1204,7 @@ MIDDLEWARE_CLASSES = [
     'openedx.core.djangoapps.safe_sessions.middleware.SafeSessionMiddleware',
 
     # Instead of AuthenticationMiddleware, we use a cached backed version
-    # 'django.contrib.auth.middleware.AuthenticationMiddleware',
+    #'django.contrib.auth.middleware.AuthenticationMiddleware',
     'openedx.core.djangoapps.cache_toolbox.middleware.CacheBackedAuthenticationMiddleware',
     # Enable SessionAuthenticationMiddleware in order to invalidate
     # user sessions after a password change.
@@ -1211,7 +1224,7 @@ MIDDLEWARE_CLASSES = [
     'corsheaders.middleware.CorsMiddleware',
     'openedx.core.djangoapps.cors_csrf.middleware.CorsCSRFMiddleware',
     'openedx.core.djangoapps.cors_csrf.middleware.CsrfCrossDomainCookieMiddleware',
-    _csrf_middleware,
+    'django.middleware.csrf.CsrfViewMiddleware',
 
     'splash.middleware.SplashMiddleware',
 
@@ -1240,7 +1253,7 @@ MIDDLEWARE_CLASSES = [
     'openedx.core.djangoapps.session_inactivity_timeout.middleware.SessionInactivityTimeout',
 
     # use Django built in clickjacking protection
-    #'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     # to redirected unenrolled students to the course info page
     'courseware.middleware.CacheCourseIdMiddleware',
@@ -1254,6 +1267,8 @@ MIDDLEWARE_CLASSES = [
 
     # Inserts Enterprise content.
     'openedx.features.enterprise_support.middleware.EnterpriseMiddleware',
+
+    'edx_rest_framework_extensions.middleware.EnsureJWTAuthSettingsMiddleware',
 
     # This must be last
     'openedx.core.djangoapps.site_configuration.middleware.SessionCookieDomainOverrideMiddleware',
@@ -1557,6 +1572,7 @@ PIPELINE_CSS = {
         'source_filenames': [
             'css/vendor/ova/annotator.css',
             'css/vendor/ova/edx-annotator.css',
+            'css/vendor/ova/video-js.min.css',
             'css/vendor/ova/rangeslider.css',
             'css/vendor/ova/share-annotator.css',
             'css/vendor/ova/richText-annotator.css',
@@ -1659,13 +1675,13 @@ PIPELINE_JS = {
     },
     'application': {
         'source_filenames': (
-                common_js + xblock_runtime_js + base_application_js + lms_application_js +
-                [
-                    'js/sticky_filter.js',
-                    'js/query-params.js',
-                    'common/js/vendor/moment-with-locales.js',
-                    'common/js/vendor/moment-timezone-with-data.js',
-                ]
+            common_js + xblock_runtime_js + base_application_js + lms_application_js +
+            [
+                'js/sticky_filter.js',
+                'js/query-params.js',
+                'common/js/vendor/moment-with-locales.js',
+                'common/js/vendor/moment-timezone-with-data.js',
+            ]
         ),
         'output_filename': 'js/lms-application.js',
     },
@@ -2167,7 +2183,7 @@ INSTALLED_APPS = [
     'social_django',
 
     # Surveys
-    'survey',
+    'survey.apps.SurveyConfig',
 
     'lms.djangoapps.lms_xblock.apps.LMSXBlockConfig',
 
@@ -2269,6 +2285,9 @@ INSTALLED_APPS = [
 
     # DRF filters
     'django_filters',
+
+    # API Documentation
+    'rest_framework_swagger',
 ]
 
 ######################### CSRF #########################################
@@ -2291,6 +2310,7 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'user': '60/minute',
         'service_user': '120/minute',
+        'registration_validation': '30/minute',
     },
 }
 
@@ -3070,6 +3090,42 @@ JWT_EXPIRED_PRIVATE_SIGNING_KEYS = []
 NOTIFICATION_EMAIL_CSS = "templates/credit_notifications/credit_notification.css"
 NOTIFICATION_EMAIL_EDX_LOGO = "templates/credit_notifications/edx-logo-header.png"
 
+
+################################ Settings for JWTs ################################
+
+DEFAULT_JWT_ISSUER = {
+    'ISSUER': 'change-me',
+    'SECRET_KEY': SECRET_KEY,
+    'AUDIENCE': 'change-me',
+}
+
+RESTRICTED_APPLICATION_JWT_ISSUER = {
+    'ISSUER': 'change-me',
+    'SECRET_KEY': SECRET_KEY,
+    'AUDIENCE': 'change-me',
+}
+
+JWT_AUTH = {
+    'JWT_ALGORITHM': 'HS256',
+    'JWT_VERIFY_EXPIRATION': True,
+
+    'JWT_PAYLOAD_GET_USERNAME_HANDLER': lambda d: d.get('username'),
+    'JWT_LEEWAY': 1,
+    'JWT_DECODE_HANDLER': 'edx_rest_framework_extensions.utils.jwt_decode_handler',
+
+    # Number of seconds before JWT tokens expire
+    'JWT_EXPIRATION': 30,
+    'JWT_SUPPORTED_VERSION': '1.1.0',
+
+    'JWT_SECRET_KEY': DEFAULT_JWT_ISSUER['SECRET_KEY'],
+    'JWT_ISSUER': DEFAULT_JWT_ISSUER['ISSUER'],
+    'JWT_AUDIENCE': DEFAULT_JWT_ISSUER['AUDIENCE'],
+    'JWT_ISSUERS': [
+        DEFAULT_JWT_ISSUER,
+        RESTRICTED_APPLICATION_JWT_ISSUER,
+    ],
+}
+
 ################################ Settings for Microsites ################################
 
 ### Select an implementation for the microsite backend
@@ -3289,6 +3345,36 @@ RETIRED_EMAIL_FMT = lambda settings: settings.RETIRED_EMAIL_PREFIX + '{}@' + set
 derived('RETIRED_USERNAME_FMT', 'RETIRED_EMAIL_FMT')
 RETIRED_USER_SALTS = ['abc', '123']
 RETIREMENT_SERVICE_WORKER_USERNAME = 'RETIREMENT_SERVICE_USER'
+
+# These states are the default, but are designed to be overridden in configuration.
+RETIREMENT_STATES = [
+    'PENDING',
+
+    'LOCKING_ACCOUNT',
+    'LOCKING_COMPLETE',
+
+    # Use these states only when ENABLE_DISCUSSION_SERVICE is True.
+    'RETIRING_FORUMS',
+    'FORUMS_COMPLETE',
+
+    # TODO - Change these states to be the LMS-only email opt-out - PLAT-2189
+    'RETIRING_EMAIL_LISTS',
+    'EMAIL_LISTS_COMPLETE',
+
+    'RETIRING_ENROLLMENTS',
+    'ENROLLMENTS_COMPLETE',
+
+    # Use these states only when ENABLE_STUDENT_NOTES is True.
+    'RETIRING_NOTES',
+    'NOTES_COMPLETE',
+
+    'RETIRING_LMS',
+    'LMS_COMPLETE',
+
+    'ERRORED',
+    'ABORTED',
+    'COMPLETE',
+]
 
 ############### Settings for django-fernet-fields ##################
 FERNET_KEYS = [

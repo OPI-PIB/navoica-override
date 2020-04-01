@@ -100,7 +100,7 @@ from .common import _make_mako_template_dirs
 
 SITE_ID = 1
 # dir containing all themes
-COMPREHENSIVE_THEME_DIRS = [REPO_ROOT / "themes"]
+COMPREHENSIVE_THEME_DIRS = [REPO_ROOT_OVERRIDE / "themes"]
 # Theme directory locale paths
 COMPREHENSIVE_THEME_LOCALE_PATHS = []
 # Theme to use when no site or site theme is defined,
